@@ -40,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
 //        tv.setText(stringFromJNI());
         boolean isSuccess = com.sogou.translate.vad.JSimpleVad.Init();
         short[] data = new short[]{1, 2, 3, 4, 56, 7, 354, 23, 1, 4, 6, 78, 3, 3};
-        JSimpleVad.doVad(data, getCache(), "asdasd");
+        JSimpleVad.doVad(data);
         if (isSuccess) {
             Log.e("dadad", "as");
         }

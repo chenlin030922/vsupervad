@@ -9,7 +9,7 @@
 #include "period_format.h"
 #include <jni.h>
 #include <queue>
-#include "stream_bean.h"
+#include "stream_thread.h"
 
 static simple_vad *vad = NULL;
 static std::mutex global_mu;
@@ -176,8 +176,10 @@ Java_com_sogou_translate_vad_JSimpleVad_doVad(JNIEnv *env,
     stream_queue.push(bean);
     env->ReleaseShortArrayElements(inputData, pinput, 0);
 }
+StreamDispatcher dispatcher;
 extern "C" JNIEXPORT jboolean JNICALL
 Java_com_sogou_translate_vad_JSimpleVad_releaseMemory(JNIEnv *env,
                                                       jobject thiz) {
-    clear(stream_queue);
+//    clear(stream_queue);
+
 }
