@@ -10,10 +10,12 @@
 #include <jni.h>
 #include <queue>
 #include "stream_thread.h"
+#include "stream_bean.h"
 
 static simple_vad *vad = NULL;
 static std::mutex global_mu;
 static std::queue<StreamBean> stream_queue;
+StreamDispatcher dispatcher;
 
 int add_period_activity(struct periods *per, int is_active, int is_last) {
     static int old_is_active = 0;
@@ -138,6 +140,7 @@ bool RunVADWithStream(int16_t *data) {
 extern "C" JNIEXPORT jboolean JNICALL
 Java_com_sogou_translate_vad_JSimpleVad_CVadInit(JNIEnv *env,
                                                  jobject thiz) {
+    dispatcher.startLoop();
     return Init();
 }
 
@@ -164,8 +167,8 @@ Java_com_sogou_translate_vad_JSimpleVad_CDoVad(JNIEnv *env,
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_sogou_translate_vad_JSimpleVad_doVad(JNIEnv *env,
-                                                   jobject thiz,
-                                                   jshortArray inputData) {
+                                              jobject thiz,
+                                              jshortArray inputData) {
     jboolean iscopy = true;
     //转为short
     int16_t *pinput = env->GetShortArrayElements(inputData, &iscopy);
@@ -176,10 +179,24 @@ Java_com_sogou_translate_vad_JSimpleVad_doVad(JNIEnv *env,
     stream_queue.push(bean);
     env->ReleaseShortArrayElements(inputData, pinput, 0);
 }
-StreamDispatcher dispatcher;
-extern "C" JNIEXPORT jboolean JNICALL
+extern "C" JNIEXPORT void JNICALL
 Java_com_sogou_translate_vad_JSimpleVad_releaseMemory(JNIEnv *env,
                                                       jobject thiz) {
 //    clear(stream_queue);
+
+}
+extern "C" JNIEXPORT void JNICALL
+Java_com_sogou_translate_vad_JSimpleVad_testStream(JNIEnv *env,
+                                                   jobject thiz, jshortArray inputData) {
+    jboolean iscopy = true;
+    //转为short
+    int16_t *pinput = env->GetShortArrayElements(inputData, &iscopy);
+    jsize length = env->GetArrayLength(inputData);
+    StreamBean bean;//添加到池中
+    bean.data = pinput;
+    bean.length = length;
+    dispatcher.addQueue(bean);
+    dispatcher.loop();
+    env->ReleaseShortArrayElements(inputData, pinput, 0);
 
 }

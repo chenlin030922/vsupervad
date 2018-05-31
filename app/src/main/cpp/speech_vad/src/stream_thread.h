@@ -14,7 +14,6 @@
 #include <iostream>
 #include "thread"
 #include <condition_variable>
-#include "jni_log.h"
 #include "../../jni_log.h"
 
 using namespace std;
@@ -34,30 +33,26 @@ private:
         swap(empty, streamQueue);
     }
 
+
+
 public:
-    StreamDispatcher() = default {
+    StreamDispatcher() {
         isLoop = 0;
     }
 
-    //读数据
-    void addQueue(StreamBean &bean) {
-        std::unique_lock<std::mutex> lock(mtx);
-        if (!isLoop) {
+    void startLoop() {
+        if (isLoop) {
             return;
         }
-//        while (streamQueue.size() == MAX_SIZE && isLoop) {
-//            ALOGE("queue is full,wait to consume");
-//            queue_not_full.wait(lock);// 生产者等待"产品库缓冲区不为满"这一条件发生.
-//        }
-        streamQueue.push(bean);
-//        queue_not_empty.notify_all();// 通知消费者产品库不为空.
-        lock.unlock();
+        isLoop = 1;
     }
-
     //取数据
     void loop() {
-        std::unique_lock<std::mutex> lock(mtx);
+        StreamBean &bean = streamQueue.front();
+        //todo 传入vad中进行静音检测
+        streamQueue.pop();
         while (1) {
+            std::unique_lock<std::mutex> lock(mtx);
             if (!isLoop) {
                 break;
             }
@@ -72,20 +67,25 @@ public:
             lock.unlock();
         }
     }
+    //读数据
+    void addQueue(StreamBean &bean) {
+        std::unique_lock<std::mutex> lock(mtx);
+//        while (streamQueue.size() == MAX_SIZE && isLoop) {
+//            ALOGE("queue is full,wait to consume");
+//            queue_not_full.wait(lock);// 生产者等待"产品库缓冲区不为满"这一条件发生.
+//        }
+        streamQueue.push(bean);
+        queue_not_empty.notify_all();// 通知消费者产品库不为空.
+        lock.unlock();
+    }
 
 
     void stopLoop() {
         isLoop = 0;
+        std::thread t1(&StreamDispatcher::loop, this);
+        t1.join();
     }
 
-    void startLoop() {
-        if (isLoop) {
-            return;
-        }
-        thread comsumer(loop);
-        isLoop = 1;
-        comsumer.join();
-    }
 
     ~StreamDispatcher() {
         clear();

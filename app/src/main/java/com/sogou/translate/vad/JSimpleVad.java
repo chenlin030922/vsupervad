@@ -19,7 +19,9 @@ public class JSimpleVad {
 
     public static native void doVad(short[] data);
 
-    public static native boolean releaseMemory();
+    public static native void releaseMemory();
+
+    public static native void testStream(short[] data);
 
     static {
         System.loadLibrary("speech_vad");
