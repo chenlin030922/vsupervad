@@ -3,13 +3,13 @@
 //
 
 #ifndef ALOHA_JNI_LOG_H
-#define ALOHA_JNI_LOG_H
 
+#define ALOHA_JNI_LOG_H
 #include "jni.h"
 #include "android/log.h"
 #include <cstdlib>
 
-using namespace std;
+
 #ifndef JNI_LOG
 #define JNI_LOG "jni_log"
 #endif

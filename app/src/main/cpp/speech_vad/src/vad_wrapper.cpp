@@ -194,9 +194,10 @@ Java_com_sogou_translate_vad_JSimpleVad_testStream(JNIEnv *env,
     jsize length = env->GetArrayLength(inputData);
     StreamBean bean;//添加到池中
     bean.data = pinput;
+    ALOGD("adasdsas");
     bean.length = length;
     dispatcher.addQueue(bean);
-    dispatcher.loop();
+    std::thread thread1(&StreamDispatcher::loop,dispatcher);
     env->ReleaseShortArrayElements(inputData, pinput, 0);
 
 }

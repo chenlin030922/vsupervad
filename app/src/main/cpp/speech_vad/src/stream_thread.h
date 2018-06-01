@@ -13,8 +13,8 @@
 
 #include <iostream>
 #include "thread"
+#include "../jni_log.h"
 #include <condition_variable>
-#include "../../jni_log.h"
 
 using namespace std;
 static const size_t MAX_SIZE = 30;
@@ -24,9 +24,7 @@ class StreamDispatcher {
 private:
     queue<StreamBean> streamQueue;
     bool isLoop;
-    mutex mtx;
-    condition_variable queue_not_full;//缓冲区不为满.
-    condition_variable queue_not_empty;//缓冲区不为满.
+
 
     void clear() {
         std::queue<StreamBean> empty;
@@ -36,6 +34,9 @@ private:
 
 
 public:
+    mutex mtx;
+    condition_variable queue_not_full;//缓冲区不为满.
+    condition_variable queue_not_empty;//缓冲区不为满.
     StreamDispatcher() {
         isLoop = 0;
     }
@@ -56,8 +57,8 @@ public:
             if (!isLoop) {
                 break;
             }
+            ALOGE("queue is empty,wait to product");
             while (streamQueue.size() == 0 && isLoop) {
-                ALOGE("queue is empty,wait to product");
                 queue_not_empty.wait(lock);
             }
             StreamBean &bean = streamQueue.front();

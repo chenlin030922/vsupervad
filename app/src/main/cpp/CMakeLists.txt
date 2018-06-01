@@ -13,9 +13,16 @@ add_library(speech_vad SHARED
 
 add_library(hello-jni SHARED
             hello-jni.cpp)
+find_library( # Sets the name of the path variable.
+              log-lib
 
+              # Specifies the name of the NDK library that
+              # you want CMake to locate.
+              log )
 # Include libraries needed for hello-jni lib
 target_link_libraries(hello-jni
-                      android
+                        android
                       speech_vad
-                      log)
+                       ${log-lib} )
+target_link_libraries( speech_vad
+                       ${log-lib} )
