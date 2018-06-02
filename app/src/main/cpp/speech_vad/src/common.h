@@ -37,8 +37,13 @@
 
 #define CAL_FRAME_BY_FRAME(frame) (MULTI * frame * 10)
 
+//默认采用16位编码方式
+#define ENCODING_PCM_16BIT 16
+
 #define CAL_FRAME_BY_TIME(time) (time / (MULTI * 10))
 
+//默认采样率16000，采用16bit编码方式，一秒钟的字节大小为16000*2
+#define BYTE_FOR_ONE_SECOND (SAMPLE_RATE*2)//一秒钟所占用的字节数,
 /*
 uint64_t inline CAL_FRAME_BY_FRAME(int frame){
     return MULTI * frame * 10;

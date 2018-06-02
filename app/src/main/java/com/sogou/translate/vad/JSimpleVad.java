@@ -1,5 +1,7 @@
 package com.sogou.translate.vad;
 
+import com.sogou.vsupervad.Frame;
+
 /**
  * Created by yangd on 2018/5/17.
  */
@@ -21,7 +23,7 @@ public class JSimpleVad {
 
     public static native void releaseMemory();
 
-    public static native void testStream(short[] data);
+    public static native  Frame  testStream(short[] data,String clazzPath);
 
     static {
         System.loadLibrary("speech_vad");

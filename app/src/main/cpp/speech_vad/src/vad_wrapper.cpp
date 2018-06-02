@@ -11,13 +11,10 @@
 #include <queue>
 #include "stream_thread.h"
 #include "stream_bean.h"
+#include "frame_info.h"
 
 static simple_vad *vad = NULL;
-static std::mutex global_mu;
-static std::queue<StreamBean> stream_queue;
-StreamDispatcher dispatcher;
-int checkNum=0;
-
+uint64_t currentPos=0;
 int add_period_activity(struct periods *per, int is_active, int is_last) {
     static int old_is_active = 0;
     static int count = 0;
@@ -39,41 +36,30 @@ int add_period_activity(struct periods *per, int is_active, int is_last) {
     }
     return 0;
 }
-int testNum=0;
-int runWithStream(StreamBean &bean, simple_vad *vad, struct cut_info *cut) {
-    struct periods *per = periods_create();
-    int is_last = 1;
-    checkNum++;
-    if (checkNum == 516) {
-       int k;
-        int x=k++;
-    }
-    int is_active = process_vad(vad, bean.data);//送入到webrtc中进行识别vad
-    add_period_activity(per, is_active, is_last);
 
-    if (is_active == 1) {
-        ALOGE("is active=%d",is_active);
-    }
-    int vad_file_res = cut_add_vad_activity(cut, is_active, is_last);
-    if (vad_file_res < 0) {
-        printf("file write success %s\n", cut->result_filename);
-    }
-    periods_free(per);
-    return 0;
+Frame runWithStream(const StreamBean &bean, simple_vad *vad) {
+    int is_active = process_vad(vad, bean.data);//送入到webrtc中进行识别vad,true说明有声音
+    Frame frame;
+    frame.start=currentPos;
+    currentPos+=bean.length*2;
+    frame.end=currentPos-1;
+    frame.isActive= static_cast<bool>(is_active);
+    return frame;
 }
+
 int run(FILE *fp, simple_vad *vad, struct cut_info *cut) {
 
     int16_t data[FRAME_SIZE];
     int res = 0;
     struct periods *per = periods_create();
-    int kk=0;
+    int kk = 0;
     while (res == 0) {
         res = read_int16_bytes(fp, data);
         if (res <= 1) {
             int is_last = (res == 1);//是否是最后一片Frame
             int is_active = process_vad(vad, data);
             if (is_active == 1) {
-                ALOGE("is active=%d",is_active);
+                ALOGE("is active=%d", is_active);
             }
             add_period_activity(per, is_active, is_last);
             int vad_file_res = cut_add_vad_activity(cut, is_active, is_last);
@@ -95,7 +81,6 @@ int run(FILE *fp, simple_vad *vad, struct cut_info *cut) {
 }
 
 bool Init() {
-    std::unique_lock<std::mutex> lock(global_mu);
     if (vad != NULL) return true;
     vad = simple_vad_create();
     if (vad == NULL) {
@@ -106,7 +91,6 @@ bool Init() {
 
 bool RunVADWithFile(int16_t *data, const std::string &input_file, const std::string &output_dir,
                     const std::string &output_filename_prefix) {
-    std::unique_lock<std::mutex> lock(global_mu);
     if (data == nullptr) {//区分传进来的是文件还是流
         FILE *fp = fopen(input_file.c_str(), "rb");
         if (fp == NULL) return false;
@@ -127,18 +111,10 @@ bool RunVADWithFile(int16_t *data, const std::string &input_file, const std::str
     return 0;
 }
 
-bool RunVADWithStream(StreamBean&bean) {
-    std::unique_lock<std::mutex> lock(global_mu);
-    struct cut_info *cut = cut_info_create1(bean.data);
-    int res = runWithStream(bean, vad, cut);
-    cut_info_free(cut);
-    return res == 0;
-}
 
 extern "C" JNIEXPORT jboolean JNICALL
 Java_com_sogou_translate_vad_JSimpleVad_CVadInit(JNIEnv *env,
                                                  jobject thiz) {
-    dispatcher.startLoop();
     return Init();
 }
 
@@ -167,7 +143,6 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_sogou_translate_vad_JSimpleVad_doVad(JNIEnv *env,
                                               jobject thiz,
                                               jshortArray inputData) {
-    checkNum=0;
     jboolean iscopy = true;
     //转为short
     int16_t *pinput = env->GetShortArrayElements(inputData, &iscopy);
@@ -175,7 +150,6 @@ Java_com_sogou_translate_vad_JSimpleVad_doVad(JNIEnv *env,
     StreamBean bean;//添加到池中
     bean.data = pinput;
     bean.length = length;
-    stream_queue.push(bean);
     env->ReleaseShortArrayElements(inputData, pinput, 0);
 }
 extern "C" JNIEXPORT void JNICALL
@@ -184,16 +158,27 @@ Java_com_sogou_translate_vad_JSimpleVad_releaseMemory(JNIEnv *env,
 //    clear(stream_queue);
 
 }
-extern "C" JNIEXPORT void JNICALL
+extern "C" JNIEXPORT jobject JNICALL
 Java_com_sogou_translate_vad_JSimpleVad_testStream(JNIEnv *env,
-                                                   jobject thiz, jshortArray inputData) {
+                                                   jobject thiz, jshortArray inputData,
+                                                   jstring clazzPath) {
     jboolean iscopy = true;
     //转为short
-    jshort *pinput =(env->GetShortArrayElements(inputData, &iscopy));
+    jshort *pinput = (env->GetShortArrayElements(inputData, &iscopy));
     jsize length = env->GetArrayLength(inputData);
+    const char *path = env->GetStringUTFChars(clazzPath, &iscopy);
     StreamBean bean;//添加到池中
     bean.data = pinput;
     bean.length = length;
     env->ReleaseShortArrayElements(inputData, pinput, 0);
-    RunVADWithStream(bean);
+    Frame frame=runWithStream(bean, vad);
+    //反射传递
+    jclass clazz = env->FindClass(path);
+    if (clazz == NULL) {
+        return NULL;
+    }
+    jmethodID constructorMid = env->GetMethodID(clazz, "<init>", "(JZ)V");
+    jobject jobject1=env->NewObject(clazz,constructorMid,frame.start, frame.isActive,frame.end);
+    return jobject1;
+
 }

@@ -90,7 +90,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 //        convertToWav();
     }
-    private void convertToWav(){
+
+    private void convertToWav() {
         try {
             InputStream stream = getAssets().open("16k_1.pcm");
             String path = getSaveCacheDir(this) + "/" + "16k_1.pcm";
@@ -104,7 +105,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 byte[] data = new byte[2048];
                 int size = stream.read(data);
                 byte[] tmp = new byte[size];
-                for (int i=0;i<size;i++) {
+                for (int i = 0; i < size; i++) {
                     tmp[i] = data[i];
                 }
                 fileOutputStream.write(tmp);
@@ -113,12 +114,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if (!wavFile.exists()) {
                 wavFile.createNewFile();
             }
-            makePCMToWAV(file.getAbsolutePath(),wavFile.getAbsolutePath());
+            makePCMToWAV(file.getAbsolutePath(), wavFile.getAbsolutePath());
             Log.e("aaa", "wav success");
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
     public static boolean isExternalStorageAvailable(Context context) {
         if (ContextCompat.checkSelfPermission(context,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED &&
@@ -128,6 +130,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         return false;
     }
+
     public static String getSaveCacheDir(Context context) {
         String cachePath = "";
         if (isExternalStorageAvailable(context)) {
@@ -137,17 +140,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         return cachePath;
     }
+
     /**
      * 将单个pcm文件转化为wav文件
      */
     private void makePCMToWAV(final String pcmPath, final String wavPath) {
         WavHeader wavHeader = new WavHeader();
         try {
-            wavHeader.rawToWave(new File(pcmPath), new File(wavPath),16000);
+            wavHeader.rawToWave(new File(pcmPath), new File(wavPath), 16000);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
     /**
      * A native method that is implemented by the 'native-lib' native library,
      * which is packaged with this application.
@@ -155,10 +160,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public native String stringFromJNI();
 
     private short[] convertToShort(byte[] bytes) {
-        short[] shorts = new short[bytes.length/2];
+        short[] shorts = new short[bytes.length / 2];
         ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shorts);
         return shorts;
     }
+
     private void initView() {
         mSampleText = (TextView) findViewById(R.id.sample_text);
         mStartrecord = (Button) findViewById(R.id.startrecord);
@@ -173,38 +179,46 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //                testNativeCode();
             }
         });
+        Log.e("asdasd", FRAME_PATH);
     }
-    int checknUM=0;
-    private void testNativeCode(){
+
+    int checknUM = 0;
+
+    private void testNativeCode() {
         JSimpleVad.DoVad(PATH, getSaveCacheDir(this), "a");
     }
-    private static final int FRAME_SIZE=320;//160个shrt数据，即320 byte数据
-    private static  String PATH;
-    private void startTest(){
+
+    private static final int FRAME_SIZE = 320;//160个shrt数据，即320 byte数据
+    private static String PATH;
+    private static final  String FRAME_PATH=(Frame.class.getPackage().getName()
+            +"/"+Frame.class.getSimpleName()).replaceAll("\\.","/");
+    private void startTest() {
         try {
-            checknUM=0;
+            checknUM = 0;
             InputStream stream = new FileInputStream(new File(PATH));
             DataInputStream dataInputStream = new DataInputStream(stream);
             while (true) {
-                int byteNum=dataInputStream.available();
-                boolean ret=byteNum > 0;
+                int byteNum = dataInputStream.available();
+                boolean ret = byteNum > 0;
                 if (!ret) {
                     break;
                 }
                 if (byteNum > FRAME_SIZE) {
-                    byteNum=FRAME_SIZE;
+                    byteNum = FRAME_SIZE;
                 }
                 byte[] data = new byte[byteNum];
                 while (stream.available() > 0) {
-                   int size= stream.read(data);
+                    Frame frame;
+                    int size = stream.read(data);
                     if (size == data.length) {
                         short[] shorts = convertToShort(data);
-                        JSimpleVad.testStream(shorts);
-                    }else {
+                       frame= JSimpleVad.testStream(shorts,FRAME_PATH);
+                    } else {
                         byte[] temp = new byte[size];
                         System.arraycopy(data, 0, temp, 0, size);
-                        JSimpleVad.testStream(convertToShort(temp));
+                       frame= JSimpleVad.testStream(convertToShort(temp),FRAME_PATH);
                     }
+                   boolean a= frame.isActive();
                 }
             }
         } catch (IOException e) {
