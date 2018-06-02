@@ -7,7 +7,7 @@
 // 16000 采样率 10ms，  大小 = 160 * 16bits/8 = 320字节 ,
 
 int run(FILE *fp, simple_vad *vad, struct cut_info *cut);
-int run(int16_t *originalData, simple_vad *vad, struct cut_info *cut);
+int runWithStream(int16_t *originalData, simple_vad *vad, struct cut_info *cut);
 
 int add_period_activity(struct periods *per, int is_active, int is_last);
 

@@ -16,6 +16,7 @@ static simple_vad *vad = NULL;
 static std::mutex global_mu;
 static std::queue<StreamBean> stream_queue;
 StreamDispatcher dispatcher;
+int checkNum=0;
 
 int add_period_activity(struct periods *per, int is_active, int is_last) {
     static int old_is_active = 0;
@@ -38,22 +39,21 @@ int add_period_activity(struct periods *per, int is_active, int is_last) {
     }
     return 0;
 }
-
-int run(int16_t *originalData, simple_vad *vad, struct cut_info *cut) {
-//    std::vector vector;
-    if (stream_queue.size() == 0) {
-        return 0;
-    }
-    int res = 0;
+int testNum=0;
+int runWithStream(StreamBean &bean, simple_vad *vad, struct cut_info *cut) {
     struct periods *per = periods_create();
     int is_last = 1;
-    //数据不为空
-    if (stream_queue.size() > 1ul) {
-        is_last = 0;//false
+    checkNum++;
+    if (checkNum == 516) {
+       int k;
+        int x=k++;
     }
-    const StreamBean bean = stream_queue.front();
-    int is_active = process_vad(vad, bean.data);
+    int is_active = process_vad(vad, bean.data);//送入到webrtc中进行识别vad
     add_period_activity(per, is_active, is_last);
+
+    if (is_active == 1) {
+        ALOGE("is active=%d",is_active);
+    }
     int vad_file_res = cut_add_vad_activity(cut, is_active, is_last);
     if (vad_file_res < 0) {
         printf("file write success %s\n", cut->result_filename);
@@ -61,18 +61,20 @@ int run(int16_t *originalData, simple_vad *vad, struct cut_info *cut) {
     periods_free(per);
     return 0;
 }
-
 int run(FILE *fp, simple_vad *vad, struct cut_info *cut) {
 
     int16_t data[FRAME_SIZE];
     int res = 0;
     struct periods *per = periods_create();
-
+    int kk=0;
     while (res == 0) {
         res = read_int16_bytes(fp, data);
         if (res <= 1) {
             int is_last = (res == 1);//是否是最后一片Frame
             int is_active = process_vad(vad, data);
+            if (is_active == 1) {
+                ALOGE("is active=%d",is_active);
+            }
             add_period_activity(per, is_active, is_last);
             int vad_file_res = cut_add_vad_activity(cut, is_active, is_last);
             if (vad_file_res < 0) {
@@ -121,18 +123,14 @@ bool RunVADWithFile(int16_t *data, const std::string &input_file, const std::str
         cut_info_free(cut);
         printf("PROGRAM FINISH\n");
         return res == 0;
-    } else {
-        struct cut_info *cut = cut_info_create1(data);
-        int res = run(data, vad, cut);
-        cut_info_free(cut);
-        return res == 0;
     }
+    return 0;
 }
 
-bool RunVADWithStream(int16_t *data) {
+bool RunVADWithStream(StreamBean&bean) {
     std::unique_lock<std::mutex> lock(global_mu);
-    struct cut_info *cut = cut_info_create1(data);
-    int res = run(data, vad, cut);
+    struct cut_info *cut = cut_info_create1(bean.data);
+    int res = runWithStream(bean, vad, cut);
     cut_info_free(cut);
     return res == 0;
 }
@@ -169,6 +167,7 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_sogou_translate_vad_JSimpleVad_doVad(JNIEnv *env,
                                               jobject thiz,
                                               jshortArray inputData) {
+    checkNum=0;
     jboolean iscopy = true;
     //转为short
     int16_t *pinput = env->GetShortArrayElements(inputData, &iscopy);
@@ -190,14 +189,11 @@ Java_com_sogou_translate_vad_JSimpleVad_testStream(JNIEnv *env,
                                                    jobject thiz, jshortArray inputData) {
     jboolean iscopy = true;
     //转为short
-    int16_t *pinput = env->GetShortArrayElements(inputData, &iscopy);
+    jshort *pinput =(env->GetShortArrayElements(inputData, &iscopy));
     jsize length = env->GetArrayLength(inputData);
     StreamBean bean;//添加到池中
     bean.data = pinput;
-    ALOGD("adasdsas");
     bean.length = length;
-    dispatcher.addQueue(bean);
-    std::thread thread1(&StreamDispatcher::loop,dispatcher);
     env->ReleaseShortArrayElements(inputData, pinput, 0);
-
+    RunVADWithStream(bean);
 }
