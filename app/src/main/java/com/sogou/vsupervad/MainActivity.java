@@ -15,7 +15,6 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -23,6 +22,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -152,7 +153,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             e.printStackTrace();
         }
     }
-
+    private static final long BYTE_ONE_SECOND=16000*2;
     /**
      * A native method that is implemented by the 'native-lib' native library,
      * which is packaged with this application.
@@ -188,7 +189,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         JSimpleVad.DoVad(PATH, getSaveCacheDir(this), "a");
     }
 
-    private static final int FRAME_SIZE = 320;//160个shrt数据，即320 byte数据
+    //native层支持三种模式，10ms,20ms,30ms当做解析包，10ms为320个字节数据，以此类推
+    private static final int FRAME_SIZE = 320*3;//160个shrt数据，即320 byte数据
     private static String PATH;
     private static final  String FRAME_PATH=(Frame.class.getPackage().getName()
             +"/"+Frame.class.getSimpleName()).replaceAll("\\.","/");
@@ -196,9 +198,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         try {
             checknUM = 0;
             InputStream stream = new FileInputStream(new File(PATH));
-            DataInputStream dataInputStream = new DataInputStream(stream);
+            List<Frame> list = new ArrayList<>();
             while (true) {
-                int byteNum = dataInputStream.available();
+                int byteNum = stream.available();
                 boolean ret = byteNum > 0;
                 if (!ret) {
                     break;
@@ -218,7 +220,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         System.arraycopy(data, 0, temp, 0, size);
                        frame= JSimpleVad.testStream(convertToShort(temp),FRAME_PATH);
                     }
-                   boolean a= frame.isActive();
+                    list.add(frame);
                 }
             }
         } catch (IOException e) {

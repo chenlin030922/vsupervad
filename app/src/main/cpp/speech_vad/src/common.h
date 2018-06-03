@@ -10,7 +10,7 @@
 
 
 // MULTI = 1 2 3 webrtc vad可以设置分别为以10ms 20ms 30ms作为包
-#define MULTI 1
+#define MULTI 3
 
 // VAD 模式 Aggressiveness mode (0, 1, 2, or 3). 数值越大，判断越是粗略，连着的静音或者响声增多
 #define WEBRTC_VAD_MODE 3

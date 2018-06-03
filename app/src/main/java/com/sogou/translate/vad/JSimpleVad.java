@@ -20,6 +20,7 @@ public class JSimpleVad {
     private static native boolean CDoVad(String input_file, String output_path, String output_prefix);
 
     public static native void doVad(short[] data);
+    public static native void restore();
 
     public static native void releaseMemory();
 

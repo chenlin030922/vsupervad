@@ -156,6 +156,9 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_sogou_translate_vad_JSimpleVad_releaseMemory(JNIEnv *env,
                                                       jobject thiz) {
 //    clear(stream_queue);
+    if (vad != nullptr) {
+        simple_vad_free(vad);
+    }
 
 }
 extern "C" JNIEXPORT jobject JNICALL
@@ -177,8 +180,14 @@ Java_com_sogou_translate_vad_JSimpleVad_testStream(JNIEnv *env,
     if (clazz == NULL) {
         return NULL;
     }
-    jmethodID constructorMid = env->GetMethodID(clazz, "<init>", "(JZ)V");
+    jmethodID constructorMid = env->GetMethodID(clazz, "<init>", "(JZJ)V");
     jobject jobject1=env->NewObject(clazz,constructorMid,frame.start, frame.isActive,frame.end);
     return jobject1;
+
+}
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_sogou_translate_vad_JSimpleVad_restore(JNIEnv *env, jclass type) {
+
 
 }
