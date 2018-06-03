@@ -24,7 +24,7 @@ public class JSimpleVad {
 
     public static native void releaseMemory();
 
-    public static native  Frame  testStream(short[] data,String clazzPath);
+    public static native  Frame  vadStream(short[] data,String clazzPath);
 
     static {
         System.loadLibrary("speech_vad");

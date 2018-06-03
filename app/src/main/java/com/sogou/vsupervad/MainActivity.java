@@ -214,11 +214,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     int size = stream.read(data);
                     if (size == data.length) {
                         short[] shorts = convertToShort(data);
-                       frame= JSimpleVad.testStream(shorts,FRAME_PATH);
+                       frame= JSimpleVad.vadStream(shorts,FRAME_PATH);
                     } else {
                         byte[] temp = new byte[size];
                         System.arraycopy(data, 0, temp, 0, size);
-                       frame= JSimpleVad.testStream(convertToShort(temp),FRAME_PATH);
+                       frame= JSimpleVad.vadStream(convertToShort(temp),FRAME_PATH);
                     }
                     list.add(frame);
                 }

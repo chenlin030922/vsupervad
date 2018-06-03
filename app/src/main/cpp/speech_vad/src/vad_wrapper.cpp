@@ -162,7 +162,7 @@ Java_com_sogou_translate_vad_JSimpleVad_releaseMemory(JNIEnv *env,
 
 }
 extern "C" JNIEXPORT jobject JNICALL
-Java_com_sogou_translate_vad_JSimpleVad_testStream(JNIEnv *env,
+Java_com_sogou_translate_vad_JSimpleVad_vadStream(JNIEnv *env,
                                                    jobject thiz, jshortArray inputData,
                                                    jstring clazzPath) {
     jboolean iscopy = true;
