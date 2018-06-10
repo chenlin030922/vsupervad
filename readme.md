@@ -1,6 +1,6 @@
 # VSuperVad
 
-基于https://github.com/Baidu-AIP/speech-vad-demo修改，主要用于android 音频流切片返回数据。
+基于 https://github.com/Baidu-AIP/speech-vad-demo 修改，主要用于android 音频流切片返回数据。
 
 修改入口file为流输入，每一次返回一个30ms的音频流数据检测，详细的可以查看上述链接的Readme。
 
